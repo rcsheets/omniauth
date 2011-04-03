@@ -26,7 +26,7 @@ module OmniAuth
             raise ArgumentError.new(":uid_attribute MUST be provided")
           end
           @uid_attribute ||= params[:uid_attribute] || DEFAULT_UID_ATTRIBUTE
-          @extra_attributes ||= params[:extra_attributes]
+          @extra_attributes ||= params[:extra_attributes] || []
         end
 
       end
