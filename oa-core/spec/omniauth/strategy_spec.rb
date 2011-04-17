@@ -5,11 +5,15 @@ class ExampleStrategy
   def call(env); self.call!(env) end
   attr_reader :last_env
   def request_phase
-    @last_env = env
+    @fail = fail!(options[:failure]) if options[:failure]
+    @last_env = env    
+    return @fail if @fail    
     raise "Request Phase"
   end
   def callback_phase
+    @fail = fail!(options[:failure]) if options[:failure]
     @last_env = env
+    return @fail if @fail    
     raise "Callback Phase"
   end
 end
@@ -62,6 +66,12 @@ describe OmniAuth::Strategy do
       it 'should set from the params if provided' do
         lambda{ strategy.call(make_env('/auth/test', 'QUERY_STRING' => 'origin=/foo')) }.should raise_error('Request Phase')
         strategy.last_env['rack.session']['omniauth.origin'].should == '/foo'
+      end
+
+      it 'should be set on the failure env' do
+        OmniAuth.config.should_receive(:on_failure).and_return(lambda{|env| env})
+        @options = {:failure => :forced_fail}
+        strategy.call(make_env('/auth/test/callback', 'rack.session' => {'omniauth.origin' => '/awesome'}))
       end
 
       context "with script_name" do
@@ -296,11 +306,16 @@ describe OmniAuth::Strategy do
   context 'setup phase' do
     context 'when options[:setup] = true' do
       let(:strategy){ ExampleStrategy.new(app, 'test', :setup => true) }      
-      let(:app){lambda{|env| env['omniauth.strategy'].options[:awesome] = 'sauce'; [404, {}, 'Awesome']}}
+      let(:app){lambda{|env| env['omniauth.strategy'].options[:awesome] = 'sauce' if env['PATH_INFO'] == '/auth/test/setup'; [404, {}, 'Awesome'] }}
 
       it 'should call through to /auth/:provider/setup' do
         strategy.call(make_env('/auth/test'))
         strategy.options[:awesome].should == 'sauce'
+      end
+
+      it 'should not call through on a non-omniauth endpoint' do
+        strategy.call(make_env('/somewhere/else'))
+        strategy.options[:awesome].should_not == 'sauce'
       end
     end
 
@@ -313,6 +328,11 @@ describe OmniAuth::Strategy do
 
       let(:strategy){ ExampleStrategy.new(app, 'test', :setup => setup_proc) }
       
+      it 'should not call the app on a non-omniauth endpoint' do
+        strategy.call(make_env('/somehwere/else'))
+        strategy.options[:awesome].should_not == 'sauce'
+      end
+
       it 'should call the rack app' do
         strategy.call(make_env('/auth/test'))
         strategy.options[:awesome].should == 'sauce'  

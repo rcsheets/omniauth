@@ -17,6 +17,7 @@ module OmniAuth
     autoload :TripIt,             'omniauth/strategies/trip_it'
     autoload :Dopplr,             'omniauth/strategies/dopplr'
     autoload :Meetup,             'omniauth/strategies/meetup'
+    autoload :Salesforce,         'omniauth/strategies/salesforce'
     autoload :SoundCloud,         'omniauth/strategies/sound_cloud'
     autoload :SmugMug,            'omniauth/strategies/smug_mug'
     autoload :Goodreads,          'omniauth/strategies/goodreads'
@@ -36,5 +37,7 @@ module OmniAuth
     autoload :Doit,               'omniauth/strategies/doit'
     autoload :Instapaper,         'omniauth/strategies/instapaper'
     autoload :TradeMe,            'omniauth/strategies/trade_me'
+    autoload :Teambox,            'omniauth/strategies/teambox'
+    autoload :Tumblr,             'omniauth/strategies/tumblr'
   end
 end

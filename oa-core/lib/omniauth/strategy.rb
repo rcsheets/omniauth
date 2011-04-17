@@ -17,7 +17,11 @@ module OmniAuth
       
       yield self if block_given?
     end
-    
+   
+    def inspect
+      "#<#{self.class.to_s}>"
+    end
+
     def call(env)
       dup.call!(env)
     end
@@ -28,23 +32,24 @@ module OmniAuth
       @env = env
       @env['omniauth.strategy'] = self      
       
-      setup_phase            
       return mock_call!(env) if OmniAuth.config.test_mode
       
       if current_path == request_path && OmniAuth.config.allowed_request_methods.include?(request.request_method.downcase.to_sym)
+        setup_phase                  
         if response = call_through_to_app
           response
         else
           if request.params['origin']
-            env['rack.session']['omniauth.origin'] = request.params['origin']            
+            @env['rack.session']['omniauth.origin'] = request.params['origin']            
           elsif env['HTTP_REFERER'] && !env['HTTP_REFERER'].match(/#{request_path}$/)
-            env['rack.session']['omniauth.origin'] = env['HTTP_REFERER']
+            @env['rack.session']['omniauth.origin'] = env['HTTP_REFERER']
           end
           request_phase
         end
       elsif current_path == callback_path
-        env['omniauth.origin'] = session.delete('omniauth.origin')
-        env['omniauth.origin'] = nil if env['omniauth.origin'] == ''
+        setup_phase                  
+        @env['omniauth.origin'] = session.delete('omniauth.origin')
+        @env['omniauth.origin'] = nil if env['omniauth.origin'] == ''
 
         callback_phase
       else
@@ -58,24 +63,26 @@ module OmniAuth
 
     def mock_call!(env)
       if current_path == request_path 
+        setup_phase
         if response = call_through_to_app
           response
         else
           if request.params['origin']
-            env['rack.session']['omniauth.origin'] = request.params['origin']
+            @env['rack.session']['omniauth.origin'] = request.params['origin']
           elsif env['HTTP_REFERER'] && !env['HTTP_REFERER'].match(/#{request_path}$/)
-            env['rack.session']['omniauth.origin'] = env['HTTP_REFERER']
+            @env['rack.session']['omniauth.origin'] = env['HTTP_REFERER']
           end
           redirect(callback_path)
         end
       elsif current_path == callback_path
+        setup_phase
         mocked_auth = OmniAuth.mock_auth_for(name.to_sym)
         if mocked_auth.is_a?(Symbol)
           fail!(mocked_auth)
         else
           @env['omniauth.auth'] = mocked_auth
-          env['omniauth.origin'] = session.delete('omniauth.origin')
-          env['omniauth.origin'] = nil if env['omniauth.origin'] == ''
+          @env['omniauth.origin'] = session.delete('omniauth.origin')
+          @env['omniauth.origin'] = nil if env['omniauth.origin'] == ''
           call_app!
         end
       else
@@ -192,7 +199,7 @@ module OmniAuth
       self.env['omniauth.error'] = exception
       self.env['omniauth.error.type'] = message_key.to_sym
       self.env['omniauth.error.strategy'] = self
-      
+
       OmniAuth.config.on_failure.call(self.env)
     end
   end
