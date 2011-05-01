@@ -31,8 +31,8 @@ module OmniAuth
         shib_session_id = request.env['Shib-Session-ID']
         return fail!(:no_session, 'No Shibboleth Session') unless shib_session_id
         @user_info = {
-          'uid' => request.env[@configuration.uid_attribute],
-          'extra' => request.env.reject {|k,v| !@configuration.extra_attributes.include?(k)}
+          'uid' => request.env[@configuration.uid_attr],
+          'extra' => request.env.reject {|k,v| !@configuration.extra_attrs.include?(k)}
         }
         return fail!(:invalid_session, 'Invalid Shibboleth Session') if @user_info.nil? || @user_info.empty?
         super
